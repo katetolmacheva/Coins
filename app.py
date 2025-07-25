@@ -157,9 +157,14 @@ def get_all_coins():
 
 # --- Маршруты Flask ---
 @app.route('/')
+@app.route('/index.html')
 def index():
     """Главная страница WebApp."""
     return render_template('index.html')
+
+@app.route('/cart.html')
+def cart():
+    return render_template('cart.html')
 
 @app.route('/api/coins', methods=['GET'])
 def get_coins():

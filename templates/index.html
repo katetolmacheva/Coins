@@ -10,17 +10,14 @@
 <body>
   <div class="container">
     <h1>Каталог Монет</h1>
-
     <div id="coins-container" class="coins-grid">
     </div>
-
-    <h1 id="cart-header" style="display: none; margin-top: 30px; text-align: center;">Корзина</h1>
-    <div id="cart-container" class="cart-grid">
-      <p id="empty-cart-message" style="display: none; text-align: center; color: var(--tg-theme-hint-color);">Корзина пуста.</p>
-    </div>
-    <button id="checkout-button" class="checkout-button" style="display: none;">Забронировать все монеты</button>
-
   </div>
+
+  <button id="view-cart-button" class="fixed-bottom-button">
+    Корзина (<span id="cart-total-items">0</span>)
+  </button>
+
   <script src="static/script.js"></script>
 </body>
 </html>

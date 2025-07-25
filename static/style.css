@@ -43,7 +43,7 @@ h1 {
 .coins-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
+  gap: 15px;
   justify-content: center;
   align-items: start;
   padding: 0 5px;
@@ -59,16 +59,16 @@ h1 {
   flex-direction: column;
   align-items: center;
   border: 1px solid var(--tg-theme-hint-color);
-  height: 100%;
+  height: 100%; /* Убедимся, что карточки одной высоты в строке */
   box-sizing: border-box;
-  max-width: 160px;
-  margin: 0 auto;
+  max-width: 160px; /* Ограничим ширину для лучшего вида на мобильных */
+  margin: 0 auto; /* Центрирование карточек */
 }
 
   .coin-card img {
     max-width: 100%;
-    height: 90px;
-    object-fit: contain;
+    height: 90px; /* Фиксированная высота для изображений */
+    object-fit: contain; /* Сохраняем пропорции, вписывая в блок */
     border-radius: 5px;
     margin-bottom: 10px;
   }
@@ -76,17 +76,17 @@ h1 {
   .coin-card h2 {
     font-size: 0.9em;
     margin-top: 0;
-    margin-bottom: 1px;
+    margin-bottom: 3px;
     color: var(--tg-theme-text-color);
     text-align: center;
-    min-height: 2em;
+    min-height: 2em; /* Чтобы заголовки не "прыгали", если текст разной длины */
   }
 
   .coin-card p {
     font-size: 0.75em;
-    margin-bottom: 0px;
+    margin-bottom: 0px; /* Уменьшаем отступ, чтобы было компактнее */
     color: var(--tg-theme-hint-color);
-    width: 100%;
+    width: 100%; /* Занимаем всю ширину для текста */
     text-align: center;
   }
 
@@ -94,7 +94,7 @@ h1 {
     font-weight: bold;
     color: var(--tg-theme-button-color);
     font-size: 0.9em;
-    margin-bottom: 5px;
+    margin-bottom: 8px;
   }
 
   .coin-card button {
@@ -102,48 +102,39 @@ h1 {
     color: var(--tg-theme-button-text-color);
     border: none;
     border-radius: 5px;
-    padding: 6px 10px;
+    padding: 8px 12px;
     cursor: pointer;
     font-size: 0.8em;
-    transition: background-color 0.2s ease;
-    width: 95%;
-    margin-top: auto;
+    width: 100%; /* Кнопка занимает всю ширину карточки */
+    margin-top: auto; /* Прижимает кнопку к низу карточки */
   }
-
-    .coin-card button:hover {
-      filter: brightness(0.9);
-    }
 
     .coin-card button:disabled {
       background-color: var(--tg-theme-hint-color);
       cursor: not-allowed;
-      opacity: 0.7;
     }
 
+/* Стили для корзины */
 .cart-grid {
-  display: flex; /* Сделаем корзину гибким контейнером */
-  flex-direction: column; /* Элементы будут идти один за другим */
-  gap: 10px; /* Отступ между элементами корзины */
-  margin-top: 15px; /* Отступ сверху */
-  padding: 10px;
-  background-color: var(--tg-theme-secondary-bg-color); /* Фон как у контейнера */
-  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 20px;
 }
 
 .cart-item {
-  display: flex;
-  justify-content: space-between; /* Распределение элементов по краям */
-  align-items: center; /* Выравнивание по центру по вертикали */
-  padding: 8px 10px;
-  border: 1px solid var(--tg-theme-hint-color);
-  border-radius: 5px;
   background-color: var(--tg-theme-bg-color);
-  color: var(--tg-theme-text-color);
-  font-size: 0.9em;
+  border: 1px solid var(--tg-theme-hint-color);
+  border-radius: 8px;
+  padding: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap; /* Позволяет элементам переноситься на новую строку */
 }
 
 .cart-item-info {
-  flex-grow: 1; /* Позволяет информации занимать доступное место */
+  flex-grow: 1; /* Занимает доступное пространство */
   text-align: left;
 }
 
@@ -156,6 +147,7 @@ h1 {
   display: flex;
   align-items: center;
   gap: 5px;
+  margin-top: 5px; /* Отступ сверху, если перенесется на новую строку */
 }
 
   .cart-item-quantity-controls button {
@@ -175,23 +167,17 @@ h1 {
     }
 
 .cart-item-quantity-display {
-  display: inline-block; /* Чтобы можно было задать ширину и отступы */
-  width: 40px; /* Установите желаемую ширину */
-  padding: 5px;
-  border: 1px solid transparent; /* Изначально без видимой рамки */
-  border-radius: 4px;
+  padding: 0 5px;
+  min-width: 20px;
   text-align: center;
-  font-size: 0.9em;
-  color: var(--tg-theme-text-color);
+  /* Добавляем стили для contenteditable */
   background-color: var(--tg-theme-secondary-bg-color);
-  cursor: pointer; /* Показываем, что элемент кликабельный */
+  border: 1px solid var(--tg-theme-hint-color);
+  border-radius: 4px;
+  outline: none; /* Убрать рамку при фокусе */
+  color: var(--tg-theme-text-color);
 }
 
-  .cart-item-quantity-display:focus {
-    outline: none; /* Убираем стандартную обводку браузера */
-    border-color: var(--tg-theme-button-color); /* Делаем рамку видимой и цветной */
-    background-color: var(--tg-theme-bg-color); /* Меняем фон при редактировании */
-  }
 
 .checkout-button {
   background-color: var(--tg-theme-button-color);
@@ -199,26 +185,110 @@ h1 {
   border: none;
   border-radius: 8px;
   padding: 12px 20px;
-  font-size: 1.1em;
   cursor: pointer;
-  width: 100%; /* Ширина на весь контейнер */
-  margin-top: 20px; /* Отступ сверху */
-  transition: background-color 0.2s ease;
+  font-size: 1.1em;
+  width: 100%;
+  box-sizing: border-box;
 }
-
-  .checkout-button:hover {
-    filter: brightness(0.9);
-  }
 
   .checkout-button:disabled {
     background-color: var(--tg-theme-hint-color);
     cursor: not-allowed;
-    opacity: 0.7;
   }
 
-/* Медиа-запрос для очень узких экранов, если нужно 1 колонку */
-@media (max-width: 350px) {
+/* Новые стили для фиксированной кнопки корзины */
+.fixed-bottom-button {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: var(--tg-theme-button-color);
+  color: var(--tg-theme-button-text-color);
+  border: none;
+  border-radius: 50px; /* Круглые края */
+  padding: 15px 30px;
+  font-size: 1.2em;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  z-index: 1000; /* Чтобы кнопка была поверх всего */
+  min-width: 200px; /* Минимальная ширина кнопки */
+}
+
+  .fixed-bottom-button:hover {
+    filter: brightness(0.9);
+  }
+
+/* Стили для кнопки "Назад" */
+.back-button {
+  background-color: var(--tg-theme-secondary-bg-color);
+  color: var(--tg-theme-text-color);
+  border: 1px solid var(--tg-theme-hint-color);
+  border-radius: 8px;
+  padding: 10px 15px;
+  cursor: pointer;
+  font-size: 0.9em;
+  display: block; /* Занимает всю ширину */
+  width: fit-content; /* Ширина по содержимому */
+  margin-bottom: 20px;
+  text-decoration: none; /* Если использовать как ссылку */
+}
+
+  .back-button:hover {
+    filter: brightness(1.2);
+  }
+
+/* Медиа-запросы для адаптивности на маленьких экранах */
+@media (max-width: 600px) {
   .coins-grid {
-    grid-template-columns: 1fr; /* На очень узких экранах 1 колонка */
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); /* Уменьшаем размер карточек */
+    gap: 10px;
+  }
+
+  .coin-card {
+    padding: 8px;
+    max-width: unset; /* Убираем максимальную ширину для лучшего заполнения */
+  }
+
+    .coin-card img {
+      height: 70px; /* Еще уменьшаем изображения */
+    }
+
+    .coin-card h2 {
+      font-size: 0.85em;
+    }
+
+    .coin-card p {
+      font-size: 0.7em;
+    }
+
+    .coin-card .quantity {
+      font-size: 0.8em;
+    }
+
+    .coin-card button {
+      font-size: 0.75em;
+      padding: 6px 10px;
+    }
+
+  .fixed-bottom-button {
+    padding: 12px 20px;
+    font-size: 1em;
+    min-width: 150px;
+  }
+
+  .cart-item {
+    flex-direction: column; /* Элементы корзины в столбик */
+    align-items: flex-start;
+  }
+
+  .cart-item-info {
+    width: 100%; /* Занимаем всю ширину */
+    margin-bottom: 5px;
+  }
+
+  .cart-item-quantity-controls {
+    width: 100%;
+    justify-content: center; /* Центрируем кнопки */
   }
 }

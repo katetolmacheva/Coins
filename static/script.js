@@ -1,7 +1,6 @@
 ﻿document.addEventListener('DOMContentLoaded', () => {
   if (window.Telegram && window.Telegram.WebApp) {
     Telegram.WebApp.ready();
-    // Устанавливаем цвета WebApp
     document.documentElement.style.setProperty('--tg-theme-bg-color', Telegram.WebApp.themeParams.bg_color || '#000000');
     document.documentElement.style.setProperty('--tg-theme-secondary-bg-color', Telegram.WebApp.themeParams.secondary_bg_color || '#1a1a1a');
     document.documentElement.style.setProperty('--tg-theme-text-color', Telegram.WebApp.themeParams.text_color || '#FFFFFF');
@@ -17,24 +16,21 @@
     ? window.location.origin
     : '';
 
-  let cart = {}; // Объект для хранения монет в корзине: { 'номер_монеты': { coinData, quantity } }
-  let coinsData = []; // Переменная для хранения всех загруженных монет из API (это будут отфильтрованные данные для отображения)
+  let cart = {};
+  let coinsData = [];
 
-  // Получаем ссылки на новые элементы управления
   const searchInput = document.getElementById('search-input');
   const sortSelect = document.getElementById('sort-select');
   const materialFilter = document.getElementById('material-filter');
   const denominationFilter = document.getElementById('denomination-filter');
   const availabilityFilter = document.getElementById('availability-filter');
 
-
-  // --- Вспомогательные функции для работы с localStorage ---
   function loadCart() {
     const savedCart = localStorage.getItem('coinCart');
     if (savedCart) {
       try {
         const parsedCart = JSON.parse(savedCart);
-        cart = {}; // Очищаем текущую корзину перед загрузкой
+        cart = {};
         for (const coinNumber in parsedCart) {
           const savedItem = parsedCart[coinNumber];
           const originalCoin = coinsData.find(c => c.number === coinNumber);
@@ -64,7 +60,7 @@
       simplifiedCart[coinNumber] = { quantity: cart[coinNumber].quantity };
     }
     localStorage.setItem('coinCart', JSON.stringify(simplifiedCart));
-    updateCartTotalItemsDisplay(); // Обновляем счетчик товаров в корзине
+    updateCartTotalItemsDisplay();
   }
 
   function updateCartTotalItemsDisplay() {
@@ -75,7 +71,6 @@
     }
   }
 
-  // --- Основные функции для работы с монетами и корзиной ---
   function addToCart(coin) {
     const currentQuantityInCart = cart[coin.number] ? cart[coin.number].quantity : 0;
     if (currentQuantityInCart + 1 <= coin.available_quantity) {
@@ -85,7 +80,6 @@
         cart[coin.number] = { ...coin, quantity: 1 };
       }
       saveCart();
-      // Обновляем количество на карточке монеты только если мы на главной странице
       if (document.getElementById('coins-container')) {
         updateCoinCardQuantity(coin.number, coin.available_quantity);
       }
@@ -102,19 +96,17 @@
       return;
     }
 
-    // 1. Ограничиваем минимальное количество нулем
     if (newQuantity < 0) {
       newQuantity = 0;
     }
 
-    // 2. Ограничиваем максимальное количество доступным на складе
     if (newQuantity > originalCoin.available_quantity) {
       newQuantity = originalCoin.available_quantity;
       alert('Вы достигли максимального количества этой монеты в наличии.');
     }
 
     if (newQuantity === 0) {
-      delete cart[coinNumber]; // Если количество стало 0, удаляем из корзины
+      delete cart[coinNumber];
     } else {
       if (!cart[coinNumber]) {
         cart[coinNumber] = { ...originalCoin, quantity: newQuantity };
@@ -123,8 +115,7 @@
       }
     }
     saveCart();
-    renderCartPage(); // Перерисовываем корзину на странице корзины (если на ней)
-    // Обновляем карточку на главной, если пользователь там
+    renderCartPage();
     if (document.getElementById('coins-container')) {
       updateCoinCardQuantity(coinNumber, originalCoin.available_quantity);
     }
@@ -135,8 +126,7 @@
     if (cart[coinNumber]) {
       delete cart[coinNumber];
       saveCart();
-      renderCartPage(); // Перерисовываем корзину
-      // Обновляем карточку на главной, если пользователь там
+      renderCartPage();
       if (document.getElementById('coins-container') && originalCoin) {
         updateCoinCardQuantity(coinNumber, originalCoin.available_quantity);
       }
@@ -145,7 +135,7 @@
 
   function updateCoinCardQuantity(coinNumber, totalAvailable) {
     const coinsContainer = document.getElementById('coins-container');
-    if (!coinsContainer) return; // Убедимся, что мы на странице каталога
+    if (!coinsContainer) return;
 
     const coinCard = coinsContainer.querySelector(`[data-coin-number="${coinNumber}"]`);
     if (coinCard) {
@@ -170,33 +160,25 @@
     }
   }
 
-
-  // --- Функции рендеринга и инициализации страниц ---
-
-  // Загрузка и отображение монет на главной странице
   async function fetchAndDisplayCoins() {
     const coinsContainer = document.getElementById('coins-container');
-    if (!coinsContainer) return; // Выходим, если не на главной странице
+    if (!coinsContainer) return;
 
-    // СОХРАНЯЕМ ТЕКУЩИЕ ЗНАЧЕНИЯ ФИЛЬТРОВ ПЕРЕД ОБНОВЛЕНИЕМ
     const currentMaterialFilterValue = materialFilter ? materialFilter.value : '';
     const currentDenominationFilterValue = denominationFilter ? denominationFilter.value : '';
     const currentAvailabilityFilterValue = availabilityFilter ? availabilityFilter.value : '';
 
-    // --- ШАГ 1: Получаем ВСЕ монеты для заполнения опций фильтров (без применения текущих фильтров) ---
     try {
       const allCoinsResponse = await fetch(`${BASE_API_URL}/api/coins`);
       if (!allCoinsResponse.ok) {
         throw new Error(`HTTP error! status: ${allCoinsResponse.status} for all coins`);
       }
       const allCoinsForFilters = await allCoinsResponse.json();
-      populateFilterOptions(allCoinsForFilters); // Заполняем опции фильтров ВСЕМИ возможными значениями
+      populateFilterOptions(allCoinsForFilters);
     } catch (error) {
       console.error('Ошибка при загрузке всех монет для фильтров:', error);
-      // Продолжаем, даже если не удалось загрузить, но фильтры могут быть пустыми
     }
 
-    // --- ШАГ 2: СОБИРАЕМ ПАРАМЕТРЫ ЗАПРОСА (используя текущие значения из UI) ---
     const queryParams = new URLSearchParams();
     if (searchInput && searchInput.value) {
       queryParams.append('search', searchInput.value);
@@ -206,11 +188,9 @@
       queryParams.append('sort_by', sortBy);
       queryParams.append('sort_order', sortOrder);
     }
-    // Восстанавливаем выбранные значения фильтров после populateFilterOptions
-    // Это важно, так как populateFilterOptions может сбросить их, если не найдены
     if (materialFilter && currentMaterialFilterValue) {
       materialFilter.value = currentMaterialFilterValue;
-      if (!materialFilter.value) { // Если значение не удалось восстановить (например, его больше нет), сбрасываем
+      if (!materialFilter.value) {
         materialFilter.value = '';
       }
       if (materialFilter.value) queryParams.append('material', materialFilter.value);
@@ -232,41 +212,36 @@
 
     const apiUrl = `${BASE_API_URL}/api/coins?${queryParams.toString()}`;
 
-    // --- ШАГ 3: Загружаем ОТФИЛЬТРОВАННЫЕ и ОТСОРТИРОВАННЫЕ данные для отображения ---
     try {
-      const response = await fetch(apiUrl); // Используем собранный URL с фильтрами
+      const response = await fetch(apiUrl);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      coinsData = await response.json(); // Это ОТФИЛЬТРОВАННЫЕ данные для отображения
+      coinsData = await response.json();
 
-      loadCart(); // Загружаем корзину после получения данных о монетах
-      displayCoins(coinsData); // Отображаем ОТФИЛЬТРОВАННЫЕ данные
-      updateCartTotalItemsDisplay(); // Обновляем счетчик на кнопке корзины
+      loadCart();
+      displayCoins(coinsData);
+      updateCartTotalItemsDisplay();
     } catch (error) {
       console.error('Ошибка при загрузке монет:', error);
       coinsContainer.innerHTML = '<p>Не удалось загрузить каталог монет. Пожалуйста, попробуйте позже.</p>';
     }
   }
 
-  // НОВАЯ ФУНКЦИЯ: Заполнение опций для фильтров "Материал" и "Номинал"
-  function populateFilterOptions(allCoins) { // ПРИНИМАЕТ ВСЕ МОНЕТЫ
+  function populateFilterOptions(allCoins) {
     if (!materialFilter || !denominationFilter) return;
 
     const materials = new Set();
     const denominations = new Set();
 
-    // Собираем уникальные значения ИЗ ВСЕХ МОНЕТ
     allCoins.forEach(coin => {
       if (coin.material) materials.add(coin.material);
-      if (coin.denomination) denominations.add(String(coin.denomination)); // Преобразуем в строку для консистентности
+      if (coin.denomination) denominations.add(String(coin.denomination));
     });
 
-    // Сохраняем текущие выбранные значения перед очисткой
     const selectedMaterial = materialFilter.value;
     const selectedDenomination = denominationFilter.value;
 
-    // Очищаем и заполняем Material Filter
     materialFilter.innerHTML = '<option value="">Все</option>';
     Array.from(materials).sort().forEach(material => {
       const option = document.createElement('option');
@@ -275,16 +250,14 @@
       materialFilter.appendChild(option);
     });
 
-    // Очищаем и заполняем Denomination Filter
     denominationFilter.innerHTML = '<option value="">Все</option>';
     Array.from(denominations).sort((a, b) => {
-      // Пытаемся сортировать номиналы как числа, если это возможно
       const numA = parseFloat(a.replace(/[^0-9.]/g, ''));
       const numB = parseFloat(b.replace(/[^0-9.]/g, ''));
       if (!isNaN(numA) && !isNaN(numB)) {
         return numA - numB;
       }
-      return a.localeCompare(b); // Иначе как строки
+      return a.localeCompare(b);
     }).forEach(denomination => {
       const option = document.createElement('option');
       option.value = denomination;
@@ -292,15 +265,13 @@
       denominationFilter.appendChild(option);
     });
 
-    // ВОССТАНАВЛИВАЕМ выбранные значения
     materialFilter.value = selectedMaterial;
     denominationFilter.value = selectedDenomination;
   }
 
-
   function displayCoins(coins) {
     const coinsContainer = document.getElementById('coins-container');
-    if (!coinsContainer) return; // Убежимся, что coinsContainer существует
+    if (!coinsContainer) return;
 
     coinsContainer.innerHTML = '';
     if (coins.length === 0) {
@@ -334,11 +305,10 @@
       coinsContainer.appendChild(coinCard);
     });
 
-    // Добавляем обработчики для кнопок "Добавить в корзину"
     coinsContainer.querySelectorAll('.add-to-cart-btn').forEach(button => {
       button.addEventListener('click', (event) => {
         const coinNumber = event.target.dataset.coinNumber;
-        const coin = coinsData.find(c => c.number === coinNumber); // Используем coinsData
+        const coin = coinsData.find(c => c.number === coinNumber);
         if (coin) {
           addToCart(coin);
         }
@@ -346,14 +316,13 @@
     });
   }
 
-  // Отображение корзины на странице cart.html
   function renderCartPage() {
     const cartContainer = document.getElementById('cart-container');
     const cartHeader = document.getElementById('cart-header');
     const emptyCartMessage = document.getElementById('empty-cart-message');
     const checkoutButton = document.getElementById('checkout-button');
 
-    if (!cartContainer) return; // Убедимся, что мы на странице корзины
+    if (!cartContainer) return;
 
     cartContainer.innerHTML = '';
     const cartItems = Object.values(cart);
@@ -467,6 +436,37 @@
       checkoutButton.textContent = 'Оформление заказа...';
     }
 
+    // Запрашиваем имя, фамилию и офис
+    const userFirstName = prompt("Пожалуйста, введите ваше имя:");
+    if (!userFirstName) {
+      alert("Имя не введено. Заказ отменен.");
+      if (checkoutButton) {
+        checkoutButton.disabled = false;
+        checkoutButton.textContent = 'Забронировать все монеты';
+      }
+      return;
+    }
+
+    const userLastName = prompt("Пожалуйста, введите вашу фамилию:");
+    if (!userLastName) {
+      alert("Фамилия не введена. Заказ отменен.");
+      if (checkoutButton) {
+        checkoutButton.disabled = false;
+        checkoutButton.textContent = 'Забронировать все монеты';
+      }
+      return;
+    }
+
+    const userOffice = prompt("Пожалуйста, введите ваш офис:");
+    if (!userOffice) {
+      alert("Офис не введен. Заказ отменен.");
+      if (checkoutButton) {
+        checkoutButton.disabled = false;
+        checkoutButton.textContent = 'Забронировать все монеты';
+      }
+      return;
+    }
+
     const orderItems = Object.values(cart).map(item => ({
       number: item.number,
       quantity: item.quantity
@@ -478,13 +478,18 @@
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ items: orderItems })
+        body: JSON.stringify({
+          items: orderItems,
+          user_first_name: userFirstName,
+          user_last_name: userLastName,
+          user_office: userOffice
+        })
       });
 
       const result = await response.json();
 
       if (result.success) {
-        alert('Ваш заказ успешно забронирован!');
+        alert('Ваш заказ успешно забронирован! Скоро с вами свяжутся.');
         cart = {};
         saveCart();
         renderCartPage();
@@ -506,42 +511,36 @@
     }
   }
 
-  // --- Инициализация в зависимости от текущей страницы ---
   async function initializePage() {
     if (document.getElementById('coins-container')) {
-      // Мы на главной странице каталога
-      await fetchAndDisplayCoins(); // Загружаем монеты и инициализируем отображение
+      await fetchAndDisplayCoins();
 
-      // ДОБАВЛЯЕМ ОБРАБОТЧИКИ СОБЫТИЙ ДЛЯ НОВЫХ ЭЛЕМЕНТОВ УПРАВЛЕНИЯ
       if (searchInput) {
         let debounceTimeout;
         searchInput.addEventListener('input', () => {
           clearTimeout(debounceTimeout);
-          debounceTimeout = setTimeout(fetchAndDisplayCoins, 300); // Задержка 300мс
+          debounceTimeout = setTimeout(fetchAndDisplayCoins, 300);
         });
       }
-      // Все обработчики теперь просто вызывают fetchAndDisplayCoins
       if (sortSelect) sortSelect.addEventListener('change', fetchAndDisplayCoins);
       if (materialFilter) materialFilter.addEventListener('change', fetchAndDisplayCoins);
       if (denominationFilter) denominationFilter.addEventListener('change', fetchAndDisplayCoins);
       if (availabilityFilter) availabilityFilter.addEventListener('change', fetchAndDisplayCoins);
 
-
       const viewCartButton = document.getElementById('view-cart-button');
       if (viewCartButton) {
         viewCartButton.addEventListener('click', () => {
-          window.location.href = 'cart.html'; // Переход на страницу корзины
+          window.location.href = 'cart.html';
         });
       }
     } else if (document.getElementById('cart-container')) {
-      // Мы на странице корзины
-      await fetchCoinsForCartPage(); // Загружаем монеты (данные) для корзины
-      renderCartPage(); // Отображаем корзину
+      await fetchCoinsForCartPage();
+      renderCartPage();
 
       const backToCatalogButton = document.getElementById('back-to-catalog-button');
       if (backToCatalogButton) {
         backToCatalogButton.addEventListener('click', () => {
-          window.location.href = 'index.html'; // Переход обратно на главную
+          window.location.href = 'index.html';
         });
       }
     }
@@ -549,28 +548,17 @@
 
   async function fetchCoinsForCartPage() {
     try {
-      // Для страницы корзины нам достаточно загрузить все монеты, чтобы корректно работать с localStorage
       const response = await fetch(`${BASE_API_URL}/api/coins`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      coinsData = await response.json(); // Загружаем все монеты, не отфильтрованные
-      loadCart(); // Загружаем корзину после получения данных о монетах
+      coinsData = await response.json();
+      loadCart();
       updateCartTotalItemsDisplay();
     } catch (error) {
       console.error('Ошибка при загрузке монет для корзины:', error);
     }
   }
 
-  // Эта функция пока не используется, но оставлена на случай, если потребуется глобальное обновление UI корзины
-  // function updateCartUI() {
-  //     renderCartPage(); // Перерисовываем корзину
-  //     // Проходимся по всем монетам и обновляем их карточки в каталоге
-  //     coinsData.forEach(coin => {
-  //         updateCoinCardQuantity(coin.number, coin.available_quantity);
-  //     });
-  // }
-
-  // Запускаем инициализацию страницы
   initializePage();
 });

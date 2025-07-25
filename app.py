@@ -1,59 +1,51 @@
-﻿# -*- coding: utf-8 -*-
-import os
+﻿import os
 import threading
+import asyncio
 from flask import Flask, render_template, request, jsonify, send_from_directory
-import telegram
-from telegram import Bot, Update, WebAppInfo, ReplyKeyboardMarkup, KeyboardButton
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 from sqlalchemy import create_engine, Column, Integer, String, Float
 from sqlalchemy.orm import sessionmaker, declarative_base
 import openpyxl
-import asyncio
+from openpyxl.utils import get_column_letter
 import platform
+import logging
+import datetime
+import re
+
+logging.getLogger("urllib3").setLevel(logging.WARNING)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # --- Конфигурация ---
-TOKEN = "7790860611:AAEJ7y8BJlSRkNhva6Uaxdg04vjIpCU-sbE" # ЗАМЕНИ НА СВОЙ ТОКЕН БОТА ИЗ BOTFATHER!
 EXCEL_FILE = 'coins.xlsx'
+ORDERS_EXCEL_FILE = 'orders.xlsx'
 DATABASE_FILE = 'database.db'
 DATABASE_URL = f'sqlite:///{DATABASE_FILE}'
 
-# ID пользователя-администратора для команды обновления данных (ЗАМЕНИ НА СВОЙ ID!)
-# Узнать свой ID можно, написав любому боту @userinfobot
-ADMIN_USER_ID = 1043419485 # <--- ОБЯЗАТЕЛЬНО ЗАМЕНИ ЭТО НА СВОЙ ID!
-
-app = Flask(__name__, static_folder='static', template_folder='templates') # Убедимся, что Flask знает где template_folder
+app = Flask(__name__, static_folder='static', template_folder='templates')
 
 # --- Настройка SQLAlchemy (База данных) ---
 Base = declarative_base()
 
 class Coin(Base):
-    """
-    Модель данных для монеты, соответствует колонкам в Excel-файле.
-    """
     __tablename__ = 'coins'
     id = Column(Integer, primary_key=True)
-    name = Column(String, nullable=False)            # Название
-    number = Column(String, unique=True, nullable=False) # Номер (код монеты, уникальный)
-    available_quantity = Column(Integer, default=0) # Доступное количество
-    denomination = Column(String)                    # Номинал
-    material = Column(String)                        # Металл (соответствует "Металл")
-    price = Column(Float)                            # Цена (тип Float, т.к. может быть с дробью)
-    file_name = Column(String)                       # Имя файла (соответствует "Имя файла")
+    name = Column(String, nullable=False)
+    number = Column(String, unique=True, nullable=False)
+    available_quantity = Column(Integer, default=0)
+    denomination = Column(String)
+    material = Column(String)
+    price = Column(Float)
+    file_name = Column(String)
 
     def __repr__(self):
         return f"<Coin(name='{self.name}', number='{self.number}', quantity={self.available_quantity})>"
 
-# Создание движка базы данных
 engine = create_engine(DATABASE_URL)
-Session = sessionmaker(bind=engine) # Создаем Session-класс здесь, для переиспользования
+Session = sessionmaker(bind=engine)
 
-# --- Функции базы данных ---
 def init_db():
-    """Создает таблицы в базе данных, если они не существуют."""
     Base.metadata.create_all(engine)
-    print("База данных инициализирована.")
+    logging.info("База данных инициализирована.")
 
-# Список обязательных колонок в Excel-файле
 REQUIRED_EXCEL_COLUMNS = [
     'Название',
     'Номер',
@@ -65,40 +57,39 @@ REQUIRED_EXCEL_COLUMNS = [
 ]
 
 def sync_excel_to_db():
-    """Синхронизирует данные из Excel-файла с базой данных."""
-    print("Начинаю синхронизацию данных из Excel...")
+    logging.info("Начинаю синхронизацию данных из Excel...")
     session = Session()
     try:
         if not os.path.exists(EXCEL_FILE):
-            print(f"Ошибка: Файл Excel '{EXCEL_FILE}' не найден.")
+            logging.error(f"Ошибка: Файл Excel '{EXCEL_FILE}' не найден.")
             return
 
         workbook = openpyxl.load_workbook(EXCEL_FILE)
         sheet = workbook.active
         header = [cell.value for cell in sheet[1]]
 
-        # Проверка на наличие всех обязательных колонок
         for col in REQUIRED_EXCEL_COLUMNS:
             if col not in header:
                 raise ValueError(f"Не найдена обязательная колонка в Excel-файле: {col}")
 
-        # Очищаем таблицу перед новой загрузкой
         session.query(Coin).delete()
         session.commit()
+        logging.info("Существующие данные в базе данных очищены.")
 
-        for row_index in range(2, sheet.max_row + 1): # Начинаем со второй строки (после заголовков)
+        for row_index in range(2, sheet.max_row + 1):
             row_data = {header[i]: sheet.cell(row=row_index, column=i+1).value for i in range(len(header))}
             
-            # Приведение к правильным типам данных
             try:
                 available_quantity = int(row_data.get('Доступное количество', 0) or 0)
             except (ValueError, TypeError):
-                available_quantity = 0 # Устанавливаем 0, если не число
+                available_quantity = 0
+                logging.warning(f"Некорректное значение 'Доступное количество' в строке {row_index}: {row_data.get('Доступное количество')}. Установлено 0.")
 
             try:
-                price = float(str(row_data.get('Цена', 0.0)).replace(',', '.') or 0.0) # Заменяем запятую на точку и конвертируем в float
+                price = float(str(row_data.get('Цена', 0.0)).replace(',', '.') or 0.0)
             except (ValueError, TypeError):
-                price = 0.0 # Устанавливаем 0.0, если не число
+                price = 0.0
+                logging.warning(f"Некорректное значение 'Цена' в строке {row_index}: {row_data.get('Цена')}. Установлено 0.0.")
 
             coin = Coin(
                 name=row_data.get('Название'),
@@ -112,43 +103,60 @@ def sync_excel_to_db():
             session.add(coin)
             
         session.commit()
-        print("Данные успешно синхронизированы из Excel в базу данных.")
+        logging.info("Данные успешно синхронизированы из Excel в базу данных.")
 
     except ValueError as e:
-        print(f"Ошибка при синхронизации данных из Excel: {e}")
+        logging.error(f"Ошибка при синхронизации данных из Excel: {e}")
         session.rollback()
     except Exception as e:
-        print(f"Произошла непредвиденная ошибка при синхронизации Excel: {e}")
+        logging.exception(f"Произошла непредвиденная ошибка при синхронизации Excel:")
         session.rollback()
     finally:
         session.close()
 
-# get_all_coins теперь не нужен, так как get_coins будет обрабатывать параметры напрямую
-# def get_all_coins():
-#     """Возвращает список всех монет из базы данных."""
-#     session = Session()
-#     try:
-#         coins = session.query(Coin).all()
-#         return [
-#             {
-#                 'name': c.name,
-#                 'number': c.number,
-#                 'available_quantity': c.available_quantity,
-#                 'denomination': c.denomination,
-#                 'material': c.material,
-#                 'price': c.price,
-#                 'file_name': c.file_name
-#             }
-#             for c in coins
-#         ]
-#     finally:
-#         session.close()
+# --- Новая функция для очистки файла заказов Excel ---
+def clear_orders_excel():
+    """Удаляет существующий файл orders.xlsx, чтобы он создался заново."""
+    if os.path.exists(ORDERS_EXCEL_FILE):
+        try:
+            os.remove(ORDERS_EXCEL_FILE)
+            logging.info(f"Существующий файл заказов '{ORDERS_EXCEL_FILE}' удален.")
+        except Exception as e:
+            logging.error(f"Ошибка при удалении файла заказов '{ORDERS_EXCEL_FILE}': {e}")
+    else:
+        logging.info(f"Файл заказов '{ORDERS_EXCEL_FILE}' не найден, создавать его не нужно.")
 
-# --- Маршруты Flask ---
+
+def save_order_to_excel(order_details):
+    try:
+        if not os.path.exists(ORDERS_EXCEL_FILE):
+            workbook = openpyxl.Workbook()
+            sheet = workbook.active
+            sheet.title = "Заказы"
+            sheet.append([
+                "Дата и время", 
+                "Имя", 
+                "Фамилия", 
+                "Офис", 
+                "Название монеты", 
+                "Код монеты", 
+                "Количество"
+            ])
+        else:
+            workbook = openpyxl.load_workbook(ORDERS_EXCEL_FILE)
+            sheet = workbook["Заказы"]
+        
+        for item in order_details:
+            sheet.append(item)
+        
+        workbook.save(ORDERS_EXCEL_FILE)
+        logging.info(f"Заказ успешно сохранен в файл Excel: {ORDERS_EXCEL_FILE}")
+    except Exception as e:
+        logging.error(f"Ошибка при сохранении заказа в Excel: {e}")
+
 @app.route('/')
 @app.route('/index.html')
 def index():
-    """Главная страница WebApp."""
     return render_template('index.html')
 
 @app.route('/cart.html')
@@ -157,32 +165,27 @@ def cart():
 
 @app.route('/static/<path:filename>')
 def static_files(filename):
-    # Убедитесь, что 'static_folder' правильно определен в App
     return send_from_directory(app.static_folder, filename)
 
 @app.route('/api/coins', methods=['GET'])
 def get_coins():
-    """API-маршрут для получения списка монет с фильтрацией и сортировкой."""
     session = Session()
     try:
         query = session.query(Coin)
 
-        # --- Получаем параметры из запроса ---
         search_query = request.args.get('search', '').lower()
-        sort_by = request.args.get('sort_by', 'name') # По умолчанию сортировка по названию
-        sort_order = request.args.get('sort_order', 'asc') # По умолчанию по возрастанию
+        sort_by = request.args.get('sort_by', 'name')
+        sort_order = request.args.get('sort_order', 'asc')
         material_filter = request.args.get('material', '')
         denomination_filter = request.args.get('denomination', '')
         availability_filter = request.args.get('availability', '')
 
-        # --- Применяем поиск ---
         if search_query:
             query = query.filter(
-                (Coin.name.ilike(f'%{search_query}%')) | # Поиск по названию (без учета регистра)
-                (Coin.number.ilike(f'%{search_query}%')) # Поиск по номеру
+                (Coin.name.ilike(f'%{search_query}%')) |
+                (Coin.number.ilike(f'%{search_query}%'))
             )
 
-        # --- Применяем фильтры ---
         if material_filter:
             query = query.filter(Coin.material == material_filter)
 
@@ -195,7 +198,6 @@ def get_coins():
             elif availability_filter == 'out_of_stock':
                 query = query.filter(Coin.available_quantity <= 0)
 
-        # --- Применяем сортировку ---
         if sort_by == 'name':
             if sort_order == 'desc':
                 query = query.order_by(Coin.name.desc())
@@ -206,16 +208,9 @@ def get_coins():
                 query = query.order_by(Coin.price.desc())
             else:
                 query = query.order_by(Coin.price.asc())
-        # Добавьте другие критерии сортировки, если необходимо (например, по номеру)
-        # elif sort_by == 'number':
-        #     if sort_order == 'desc':
-        #         query = query.order_by(Coin.number.desc())
-        #     else:
-        #         query = query.order_by(Coin.number.asc())
 
         coins = query.all()
 
-        # Преобразуем объекты Coin в словари для JSON-ответа
         coins_data = [
             {
                 'name': c.name,
@@ -231,15 +226,13 @@ def get_coins():
         return jsonify(coins_data)
 
     except Exception as e:
-        print(f"Ошибка при получении монет: {e}")
+        logging.error(f"Ошибка при получении монет: {e}")
         return jsonify({'error': 'Ошибка сервера при получении данных'}), 500
     finally:
         session.close()
 
-
 @app.route('/api/reserve/<string:coin_number>', methods=['POST'])
 def reserve_coin(coin_number):
-    """API-маршрут для бронирования одной монеты."""
     session = Session()
     try:
         coin = session.query(Coin).filter_by(number=coin_number).first()
@@ -253,15 +246,18 @@ def reserve_coin(coin_number):
             return jsonify({'success': False, 'message': 'Монета не найдена.'})
     except Exception as e:
         session.rollback()
+        logging.error(f"Ошибка бронирования монеты {coin_number}: {e}")
         return jsonify({'success': False, 'message': f'Ошибка бронирования: {str(e)}'})
     finally:
         session.close()
 
 @app.route('/api/checkout', methods=['POST'])
 def checkout():
-    """API-маршрут для оформления заказа из корзины."""
     data = request.get_json()
     items_to_reserve = data.get('items', [])
+    user_first_name = data.get('user_first_name', 'Не указано') 
+    user_last_name = data.get('user_last_name', 'Не указано')
+    user_office = data.get('user_office', 'Не указано')
     
     session = Session()
     
@@ -272,13 +268,12 @@ def checkout():
         for item in items_to_reserve:
             coin_number = item.get('number')
             quantity = item.get('quantity', 1)
-            
-            coin = session.query(Coin).filter_by(number=str(coin_number)).first() # Убедимся, что номер как строка
+            coin = session.query(Coin).filter_by(number=str(coin_number)).first()
             
             if not coin:
                 results.append({'number': coin_number, 'success': False, 'message': 'Монета не найдена.'})
                 success_all = False
-                continue
+                break
             
             if coin.available_quantity < quantity:
                 results.append({
@@ -287,97 +282,73 @@ def checkout():
                     'message': f'Недостаточно монет в наличии для "{coin.name}". Доступно: {coin.available_quantity}, Запрошено: {quantity}.'
                 })
                 success_all = False
-                continue
-            
-            coin.available_quantity -= quantity
-            session.add(coin) # Обновляем объект в сессии
-            results.append({'number': coin_number, 'success': True, 'new_quantity': coin.available_quantity})
-            
+                break
+        
         if success_all:
+            order_records_for_excel = []
+            current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+            for item in items_to_reserve:
+                coin_number = item.get('number')
+                quantity = item.get('quantity', 1)
+                coin = session.query(Coin).filter_by(number=str(coin_number)).first()
+                if coin:
+                    coin.available_quantity -= quantity
+                    session.add(coin) 
+                    
+                    order_records_for_excel.append([
+                        current_time,
+                        user_first_name,
+                        user_last_name,
+                        user_office,
+                        coin.name,
+                        coin.number,
+                        quantity
+                    ])
             session.commit()
-            # Добавим логирование заказа в отдельный файл, если нужно
-            # В данном случае, это можно реализовать так же, как в предыдущем app.py,
-            # но для текущего запроса я оставлю это за рамками, чтобы не усложнять
-            # и сосредоточиться на фильтрации/сортировке.
-            # Если вам нужно сохранить историю заказов в файл, дайте знать.
+            logging.info(f"Заказ от '{user_first_name} {user_last_name}' успешно зарезервирован в БД.")
+
+            save_order_to_excel(order_records_for_excel)
+            
             return jsonify({'success': True, 'message': 'Заказ успешно оформлен!', 'details': results})
         else:
-            session.rollback() # Откатываем все изменения, если хоть одна позиция не может быть зарезервирована
+            session.rollback()
+            logging.warning("Оформление заказа отменено из-за нехватки монет.")
             return jsonify({'success': False, 'message': 'Не удалось оформить весь заказ. Проверьте детали.', 'details': results})
             
     except Exception as e:
         session.rollback()
+        logging.exception(f"Произошла ошибка при оформлении заказа:")
         return jsonify({'success': False, 'message': f'Произошла ошибка при оформлении заказа: {str(e)}', 'details': []})
     finally:
         session.close()
 
+def run_flask_app():
+    app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False)
 
-# --- Функции Telegram бота ---
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Отправляет сообщение при команде /start с кнопкой WebApp."""
-    
-    # URL вашей Flask-приложения. Если вы используете ngrok, он будет выглядеть примерно так:
-    # WEBAPP_URL = "https://your-ngrok-url.ngrok-free.app"
-    # Для локального тестирования без ngrok (если Flask запущен на 0.0.0.0:5000):
-    # Убедитесь, что этот URL доступен из Telegram. На публичном хостинге это будет URL вашего домена.
-    WEBAPP_URL = "http://127.0.0.1:5000" # Или URL вашего публичного сервера/ngrok
-
-    keyboard = [
-        [KeyboardButton("Открыть каталог монет", web_app=WebAppInfo(url=WEBAPP_URL))]
-    ]
-    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=False)
-    
-    await update.message.reply_text(
-        "Добро пожаловать в каталог монет! Нажмите кнопку ниже, чтобы просмотреть ассортимент.",
-        reply_markup=reply_markup
-    )
-
-async def update_data(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Обновляет данные из Excel-файла (только для администратора)."""
-    if update.effective_user.id != ADMIN_USER_ID:
-        await update.message.reply_text("У вас нет прав для выполнения этой команды.")
-        return
-
-    await update.message.reply_text("Начинаю синхронизацию данных из Excel... Это может занять несколько секунд.")
-    sync_excel_to_db()
-    await update.message.reply_text("Синхронизация данных из Excel завершена!")
-
-# --- Запуск приложения ---
-async def main():
-    """Основная асинхронная функция для запуска бота и Flask-сервера."""
-    # Инициализируем базу данных при запуске
-    init_db()
-    # Синхронизируем данные из Excel при первом запуске
-    sync_excel_to_db()
-
-    application = Application.builder().token(TOKEN).build()
-
-    # Добавляем обработчики команд
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("update_excel_data", update_data))
-
-    # Запуск Flask-сервера в отдельном потоке
-    def run_flask():
-        app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False) 
-
-    flask_thread = threading.Thread(target=run_flask)
-    flask_thread.start()
-    print("Запуск Flask-приложения на порту 5000...")
-
-    # Запуск Telegram бота
-    print("Запуск Telegram бота (polling)...")
-    await application.run_polling(allowed_updates=Update.ALL_TYPES, drop_pending_updates=True, timeout=30)
-
+# run_telegram_bot_in_thread и связанные с ним части удалены.
 
 if __name__ == '__main__':
-    # Эта часть необходима для корректной работы asyncio на Windows
     if platform.system() == "Windows":
         asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
     
+    # --- Вызываем новую функцию здесь ---
+    clear_orders_excel()
+    logging.info("Файл заказов orders.xlsx подготовлен к новой сессии.")
+    # ------------------------------------
+
+    init_db()
+    sync_excel_to_db()
+
+    flask_thread = threading.Thread(target=run_flask_app, daemon=True)
+    flask_thread.start()
+    logging.info("Flask-приложение запущено в отдельном потоке на порту 5000...")
+
     try:
-        # Запускаем основную асинхронную функцию
-        asyncio.run(main())
+        while True:
+            import time
+            time.sleep(1)
     except KeyboardInterrupt:
-        print("Приложение остановлено пользователем.")
+        logging.info("Приложение остановлено пользователем (Ctrl+C).")
     except Exception as e:
-        print(f"Произошла фатальная ошибка: {e}")
+        logging.exception(f"Произошла непредвиденная ошибка в основном потоке:")

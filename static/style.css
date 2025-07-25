@@ -1,0 +1,211 @@
+﻿:root {
+  /* Переопределяем цвета Telegram на свои */
+  --tg-theme-bg-color: #000000; /* Черный фон */
+  --tg-theme-secondary-bg-color: #1a1a1a; /* Чуть светлее черный для контейнеров */
+  --tg-theme-text-color: #FFFFFF; /* Белый текст */
+  --tg-theme-hint-color: #CCCCCC; /* Светло-серый текст для подсказок */
+  --tg-theme-link-color: #FF0000; /* Красный для ссылок (если есть) */
+  --tg-theme-button-color: #FF0000; /* Красный для кнопок */
+  --tg-theme-button-text-color: #FFFFFF; /* Белый текст на кнопках */
+  --tg-theme-header-bg-color: #000000; /* Черный для заголовка WebApp */
+  --tg-theme-accent-text-color: #FF0000; /* Красный для акцентного текста */
+}
+
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: var(--tg-theme-bg-color);
+  color: var(--tg-theme-text-color);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100vh;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.container {
+  width: 100%;
+  max-width: 900px;
+  background-color: var(--tg-theme-secondary-bg-color);
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  text-align: center;
+}
+
+h1 {
+  color: var(--tg-theme-text-color);
+  margin-bottom: 20px;
+}
+
+.coins-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  justify-content: center;
+  align-items: start;
+  padding: 0 5px;
+}
+
+.coin-card {
+  background-color: var(--tg-theme-bg-color);
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 10px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border: 1px solid var(--tg-theme-hint-color);
+  height: 100%;
+  box-sizing: border-box;
+  max-width: 160px;
+  margin: 0 auto;
+}
+
+  .coin-card img {
+    max-width: 100%;
+    height: 90px;
+    object-fit: contain;
+    border-radius: 5px;
+    margin-bottom: 10px;
+  }
+
+  .coin-card h2 {
+    font-size: 0.9em;
+    margin-top: 0;
+    margin-bottom: 1px;
+    color: var(--tg-theme-text-color);
+    text-align: center;
+    min-height: 2em;
+  }
+
+  .coin-card p {
+    font-size: 0.75em;
+    margin-bottom: 0px;
+    color: var(--tg-theme-hint-color);
+    width: 100%;
+    text-align: center;
+  }
+
+  .coin-card .quantity {
+    font-weight: bold;
+    color: var(--tg-theme-button-color);
+    font-size: 0.9em;
+    margin-bottom: 5px;
+  }
+
+  .coin-card button {
+    background-color: var(--tg-theme-button-color);
+    color: var(--tg-theme-button-text-color);
+    border: none;
+    border-radius: 5px;
+    padding: 6px 10px;
+    cursor: pointer;
+    font-size: 0.8em;
+    transition: background-color 0.2s ease;
+    width: 95%;
+    margin-top: auto;
+  }
+
+    .coin-card button:hover {
+      filter: brightness(0.9);
+    }
+
+    .coin-card button:disabled {
+      background-color: var(--tg-theme-hint-color);
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+
+.cart-grid {
+  display: flex; /* Сделаем корзину гибким контейнером */
+  flex-direction: column; /* Элементы будут идти один за другим */
+  gap: 10px; /* Отступ между элементами корзины */
+  margin-top: 15px; /* Отступ сверху */
+  padding: 10px;
+  background-color: var(--tg-theme-secondary-bg-color); /* Фон как у контейнера */
+  border-radius: 8px;
+}
+
+.cart-item {
+  display: flex;
+  justify-content: space-between; /* Распределение элементов по краям */
+  align-items: center; /* Выравнивание по центру по вертикали */
+  padding: 8px 10px;
+  border: 1px solid var(--tg-theme-hint-color);
+  border-radius: 5px;
+  background-color: var(--tg-theme-bg-color);
+  color: var(--tg-theme-text-color);
+  font-size: 0.9em;
+}
+
+.cart-item-info {
+  flex-grow: 1; /* Позволяет информации занимать доступное место */
+  text-align: left;
+}
+
+.cart-item-name {
+  font-weight: bold;
+  color: var(--tg-theme-text-color);
+}
+
+.cart-item-quantity-controls {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+  .cart-item-quantity-controls button {
+    background-color: var(--tg-theme-button-color);
+    color: var(--tg-theme-button-text-color);
+    border: none;
+    border-radius: 4px;
+    padding: 4px 8px; /* Меньшие кнопки */
+    cursor: pointer;
+    font-size: 0.8em;
+    min-width: 25px; /* Минимальная ширина для кнопок +/- */
+    text-align: center;
+  }
+
+    .cart-item-quantity-controls button:hover {
+      filter: brightness(0.9);
+    }
+
+.cart-item-quantity-display {
+  padding: 0 5px;
+  min-width: 20px;
+  text-align: center;
+}
+
+.checkout-button {
+  background-color: var(--tg-theme-button-color);
+  color: var(--tg-theme-button-text-color);
+  border: none;
+  border-radius: 8px;
+  padding: 12px 20px;
+  font-size: 1.1em;
+  cursor: pointer;
+  width: 100%; /* Ширина на весь контейнер */
+  margin-top: 20px; /* Отступ сверху */
+  transition: background-color 0.2s ease;
+}
+
+  .checkout-button:hover {
+    filter: brightness(0.9);
+  }
+
+  .checkout-button:disabled {
+    background-color: var(--tg-theme-hint-color);
+    cursor: not-allowed;
+    opacity: 0.7;
+  }
+
+/* Медиа-запрос для очень узких экранов, если нужно 1 колонку */
+@media (max-width: 350px) {
+  .coins-grid {
+    grid-template-columns: 1fr; /* На очень узких экранах 1 колонка */
+  }
+}

@@ -1,5 +1,4 @@
 ﻿:root {
-  /* Переопределяем цвета Telegram на свои */
   --tg-theme-bg-color: #000000; /* Черный фон */
   --tg-theme-secondary-bg-color: #1a1a1a; /* Чуть светлее черный для контейнеров */
   --tg-theme-text-color: #FFFFFF; /* Белый текст */
@@ -14,25 +13,27 @@
 body {
   font-family: Arial, sans-serif;
   margin: 0;
-  padding: 0;
+  padding: 0; /* Убираем padding отсюда, чтобы не было двойных отступов */
   background-color: var(--tg-theme-bg-color);
   color: var(--tg-theme-text-color);
-  display: flex;
+  /* display: flex;
   justify-content: center;
-  align-items: flex-start;
-  min-height: 100vh;
-  padding: 20px;
-  box-sizing: border-box;
+  align-items: flex-start; */ /* Эти свойства убираем, они больше не нужны для центрирования контейнера */
+  min-height: 100vh; /* Минимальная высота на весь экран */
+  /* Добавляем отступ снизу для фиксированной кнопки */
+  padding-bottom: 90px; /* Высота кнопки + отступ */
 }
 
 .container {
   width: 100%;
-  max-width: 900px;
+  max-width: 900px; /* Фиксированная максимальная ширина */
   background-color: var(--tg-theme-secondary-bg-color);
   border-radius: 10px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   padding: 20px;
   text-align: center;
+  margin: 20px auto; /* Центрирование контейнера по горизонтали и отступы сверху/снизу */
+  box-sizing: border-box; /* Учитываем padding в ширине */
 }
 
 h1 {
@@ -196,28 +197,50 @@ h1 {
     cursor: not-allowed;
   }
 
-/* Новые стили для фиксированной кнопки корзины */
+/* Стиль для фиксированной кнопки "Корзина" */
 .fixed-bottom-button {
-  position: fixed;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
   background-color: var(--tg-theme-button-color);
   color: var(--tg-theme-button-text-color);
   border: none;
-  border-radius: 50px; /* Круглые края */
+  border-radius: 50px; /* Круглые края, как на скриншоте */
   padding: 15px 30px;
   font-size: 1.2em;
   font-weight: bold;
   cursor: pointer;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-  z-index: 1000; /* Чтобы кнопка была поверх всего */
-  min-width: 200px; /* Минимальная ширина кнопки */
+  width: calc(100% - 40px); /* Максимальная ширина, учитывая padding body */
+  max-width: 860px; /* Соответствует max-width контейнера (900px - 2*20px padding) */
+  position: fixed; /* Фиксируем кнопку */
+  bottom: 20px; /* Отступ от нижнего края */
+  left: 50%; /* Центрируем по горизонтали */
+  transform: translateX(-50%); /* Точное центрирование */
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5); /* Более выраженная тень */
+  z-index: 1000; /* Убедимся, что кнопка поверх других элементов */
+  text-align: center; /* Центрируем текст внутри кнопки */
+  white-space: nowrap; /* Предотвращаем перенос текста */
 }
 
   .fixed-bottom-button:hover {
     filter: brightness(0.9);
   }
+
+/* Стили для кнопки "Забронировать все монеты" на странице корзины (если они есть) */
+.checkout-button {
+  background-color: var(--tg-theme-button-color);
+  color: var(--tg-theme-button-text-color);
+  border: none;
+  border-radius: 8px;
+  padding: 12px 25px;
+  font-size: 1.1em;
+  cursor: pointer;
+  width: calc(100% - 40px); /* Учитываем padding container */
+  max-width: 860px; /* Соответствует max-width контейнера */
+  position: fixed; /* Фиксируем кнопку */
+  bottom: 20px; /* Отступ от нижнего края */
+  left: 50%; /* Центрируем по горизонтали */
+  transform: translateX(-50%); /* Точное центрирование */
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2); /* Тень сверху для выделения */
+  z-index: 1000; /* Убедимся, что кнопка поверх других элементов */
+}
 
 /* Стили для кнопки "Назад" */
 .back-button {
@@ -270,12 +293,6 @@ h1 {
       font-size: 0.75em;
       padding: 6px 10px;
     }
-
-  .fixed-bottom-button {
-    padding: 12px 20px;
-    font-size: 1em;
-    min-width: 150px;
-  }
 
   .cart-item {
     flex-direction: column; /* Элементы корзины в столбик */

@@ -175,10 +175,23 @@ h1 {
     }
 
 .cart-item-quantity-display {
-  padding: 0 5px;
-  min-width: 20px;
+  display: inline-block; /* Чтобы можно было задать ширину и отступы */
+  width: 40px; /* Установите желаемую ширину */
+  padding: 5px;
+  border: 1px solid transparent; /* Изначально без видимой рамки */
+  border-radius: 4px;
   text-align: center;
+  font-size: 0.9em;
+  color: var(--tg-theme-text-color);
+  background-color: var(--tg-theme-secondary-bg-color);
+  cursor: pointer; /* Показываем, что элемент кликабельный */
 }
+
+  .cart-item-quantity-display:focus {
+    outline: none; /* Убираем стандартную обводку браузера */
+    border-color: var(--tg-theme-button-color); /* Делаем рамку видимой и цветной */
+    background-color: var(--tg-theme-bg-color); /* Меняем фон при редактировании */
+  }
 
 .checkout-button {
   background-color: var(--tg-theme-button-color);

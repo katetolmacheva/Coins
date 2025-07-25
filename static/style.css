@@ -309,3 +309,66 @@ h1 {
     justify-content: center; /* Центрируем кнопки */
   }
 }
+
+.controls-container {
+  display: flex;
+  flex-wrap: wrap; /* Разрешаем элементам переноситься на новую строку */
+  gap: 15px; /* Промежуток между элементами */
+  justify-content: center; /* Центрируем элементы */
+  margin-bottom: 30px; /* Отступ снизу от карточек монет */
+  padding: 10px;
+  background-color: var(--tg-theme-secondary-bg-color); /* Фон как у основного контейнера */
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.control-input,
+.control-select {
+  padding: 10px 15px;
+  border: 1px solid var(--tg-theme-hint-color);
+  border-radius: 5px;
+  background-color: var(--tg-theme-bg-color);
+  color: var(--tg-theme-text-color);
+  font-size: 1em;
+  width: 100%; /* По умолчанию на всю ширину */
+  box-sizing: border-box; /* Учитывать padding и border в ширине */
+}
+
+/* Стили для группы select + label */
+.select-group {
+  flex: 1 1 auto; /* Элементы могут сжиматься и расширяться */
+  min-width: 150px; /* Минимальная ширина для каждого select-group */
+  max-width: 250px; /* Максимальная ширина для каждого select-group */
+  display: flex;
+  flex-direction: column;
+}
+
+.control-label {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--tg-theme-hint-color);
+  font-size: 0.9em;
+  text-align: left;
+}
+
+/* Адаптация для мобильных устройств */
+@media (min-width: 600px) {
+  .control-input {
+    width: auto; /* На больших экранах поиск может быть шире */
+    flex-grow: 2; /* Даем поиску больше места */
+  }
+}
+
+/* Улучшение стилей для кнопок в корзине (если еще не сделано) */
+.checkout-button:disabled,
+.add-to-cart-btn:disabled,
+.fixed-bottom-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Дополнительные стили, которые могли быть затронуты, убедитесь что они есть */
+h1 {
+  color: var(--tg-theme-text-color);
+  margin-bottom: 20px;
+}

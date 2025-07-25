@@ -10,19 +10,51 @@
 <body>
   <div class="container">
     <h1>Каталог Монет</h1>
+
+    <div class="controls-container">
+      <input type="text" id="search-input" placeholder="Поиск по названию или номеру..." class="control-input">
+
+      <div class="select-group">
+        <label for="sort-select" class="control-label">Сортировать по:</label>
+        <select id="sort-select" class="control-select">
+          <option value="name_asc">Названию (А-Я)</option>
+          <option value="name_desc">Названию (Я-А)</option>
+          <option value="price_asc">Цене (возрастание)</option>
+          <option value="price_desc">Цене (убывание)</option>
+        </select>
+      </div>
+
+      <div class="select-group">
+        <label for="material-filter" class="control-label">Материал:</label>
+        <select id="material-filter" class="control-select">
+          <option value="">Все</option>
+        </select>
+      </div>
+
+      <div class="select-group">
+        <label for="denomination-filter" class="control-label">Номинал:</label>
+        <select id="denomination-filter" class="control-select">
+          <option value="">Все</option>
+        </select>
+      </div>
+
+      <div class="select-group">
+        <label for="availability-filter" class="control-label">Наличие:</label>
+        <select id="availability-filter" class="control-select">
+          <option value="">Все</option>
+          <option value="in_stock">В наличии</option>
+          <option value="out_of_stock">Нет в наличии</option>
+        </select>
+      </div>
+    </div>
     <div id="coins-container" class="coins-grid">
     </div>
 
-    <h1 id="cart-header" style="display: none; margin-top: 30px; text-align: center;">Корзина</h1>
-    <div id="cart-container" class="cart-grid">
-      <p id="empty-cart-message" style="display: none; text-align: center; color: var(--tg-theme-hint-color);">Корзина пуста.</p>
-    </div>
-    <button id="checkout-button" class="checkout-button" style="display: none;">Забронировать все монеты</button>
-  </div>
+    <button id="view-cart-button" class="fixed-bottom-button">
+      Корзина (<span id="cart-total-items">0</span>)
+    </button>
 
-  <button id="view-cart-button" class="fixed-bottom-button">
-    Корзина (<span id="cart-total-items">0</span>)
-  </button>
+  </div>
 
   <script src="static/script.js"></script>
 </body>

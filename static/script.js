@@ -436,7 +436,6 @@
       checkoutButton.textContent = 'Оформление заказа...';
     }
 
-    // Запрашиваем имя, фамилию и офис
     const userFirstName = prompt("Пожалуйста, введите ваше имя:");
     if (!userFirstName) {
       alert("Имя не введено. Заказ отменен.");

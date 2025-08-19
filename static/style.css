@@ -358,3 +358,20 @@ h1 {
   color: var(--tg-theme-text-color);
   margin-bottom: 20px;
 }
+
+.control-input,
+.control-select {
+    padding: 10px 15px;
+    border: 1px solid var(--tg-theme-hint-color);
+    border-radius: 5px;
+    background-color: var(--tg-theme-bg-color);
+    color: var(--tg-theme-text-color);
+    font-family: Arial, sans-serif;
+    width: 100%;
+    box-sizing: border-box; /* Убедитесь, что padding и border включены в общую ширину */
+}
+
+/* Дополнительные стили, чтобы поля хорошо выглядели вместе */
+#checkout-form input {
+    margin-bottom: 10px;
+}

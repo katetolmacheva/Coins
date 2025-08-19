@@ -1,4 +1,4 @@
-﻿document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', () => {
     if (window.Telegram && window.Telegram.WebApp) {
         Telegram.WebApp.ready();
         document.documentElement.style.setProperty('--tg-theme-bg-color', Telegram.WebApp.themeParams.bg_color || '#000000');
@@ -406,22 +406,9 @@
         });
 
         const checkoutButton = document.getElementById('checkout-button');
-        const checkoutForm = document.getElementById('checkout-form');
-        const submitCheckoutButton = document.getElementById('submit-checkout-button');
-
         if (checkoutButton) {
-            checkoutButton.addEventListener('click', () => {
-                if (Object.keys(cart).length === 0) {
-                    alert('Ваша корзина пуста!');
-                    return;
-                }
-                checkoutButton.style.display = 'none'; // Скрываем старую кнопку
-                checkoutForm.style.display = 'block'; // Показываем форму
-            });
-        }
-
-        if (submitCheckoutButton) {
-            submitCheckoutButton.addEventListener('click', handleCheckout);
+            checkoutButton.removeEventListener('click', handleCheckout);
+            checkoutButton.addEventListener('click', handleCheckout);
         }
     }
 
@@ -436,21 +423,47 @@
         updateCoinQuantityInCart(coinNumber, newQuantity);
         inputElement.textContent = cart[coinNumber] ? cart[coinNumber].quantity : 0;
     }
-    
-    async function handleCheckout() {
-        const name = document.getElementById('checkout-name').value;
-        const lastname = document.getElementById('checkout-lastname').value;
-        const office = document.getElementById('checkout-office').value;
 
-        if (!name || !lastname || !office) {
-            alert("Пожалуйста, заполните все поля (Имя, Фамилия и офис).");
+    async function handleCheckout() {
+        if (Object.keys(cart).length === 0) {
+            alert('Ваша корзина пуста!');
             return;
         }
 
-        const checkoutButton = document.getElementById('submit-checkout-button');
+        const checkoutButton = document.getElementById('checkout-button');
         if (checkoutButton) {
             checkoutButton.disabled = true;
             checkoutButton.textContent = 'Оформление заказа...';
+        }
+
+        const userFirstName = prompt("Пожалуйста, введите ваше имя:");
+        if (!userFirstName) {
+            alert("Имя не введено. Заказ отменен.");
+            if (checkoutButton) {
+                checkoutButton.disabled = false;
+                checkoutButton.textContent = 'Забронировать все монеты';
+            }
+            return;
+        }
+
+        const userLastName = prompt("Пожалуйста, введите вашу фамилию:");
+        if (!userLastName) {
+            alert("Фамилия не введена. Заказ отменен.");
+            if (checkoutButton) {
+                checkoutButton.disabled = false;
+                checkoutButton.textContent = 'Забронировать все монеты';
+            }
+            return;
+        }
+
+        const userOffice = prompt("Пожалуйста, введите ваш офис:");
+        if (!userOffice) {
+            alert("Офис не введен. Заказ отменен.");
+            if (checkoutButton) {
+                checkoutButton.disabled = false;
+                checkoutButton.textContent = 'Забронировать все монеты';
+            }
+            return;
         }
 
         const orderItems = Object.values(cart).map(item => ({
@@ -466,11 +479,12 @@
                 },
                 body: JSON.stringify({
                     items: orderItems,
-                    user_first_name: name,
-                    user_last_name: lastname,
-                    user_office: office
+                    user_first_name: userFirstName,
+                    user_last_name: userLastName,
+                    user_office: userOffice
                 })
             });
+
             const result = await response.json();
 
             if (result.success) {
@@ -491,7 +505,7 @@
         } finally {
             if (checkoutButton) {
                 checkoutButton.disabled = false;
-                checkoutButton.textContent = 'Подтвердить заказ';
+                checkoutButton.textContent = 'Забронировать все монеты';
             }
         }
     }

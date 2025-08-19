@@ -5,12 +5,12 @@ from flask import Flask, render_template, request, jsonify, send_from_directory
 import telegram
 from telegram import Update, WebAppInfo, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
-
 from sqlalchemy import create_engine, Column, Integer, String, Float
 from sqlalchemy.orm import sessionmaker, declarative_base
 import openpyxl
 from openpyxl.utils import get_column_letter
 import platform
+import asyncio
 import logging
 import datetime
 import re 
@@ -19,19 +19,26 @@ logging.getLogger("urllib3").setLevel(logging.WARNING)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # --- Конфигурация ---
-TOKEN = "7790860611:AAEJ7y8BJlSRkNhva6Uaxdg04vjIpCU-sbE" # ЗАМЕНИ НА СВОЙ ТОКЕН БОТА ИЗ BOTFATHER!
+TOKEN = "7790860611:AAEJ7y8BJlSRkNhva6Uaxdg04vjIpCU-sbE" # ЗАМЕНИТЬ НА СВОЙ ТОКЕН БОТА ИЗ BOTFATHER!
 EXCEL_FILE = 'coins.xlsx'
 ORDERS_EXCEL_FILE = 'orders.xlsx'
 DATABASE_FILE = 'database.db'
 DATABASE_URL = f'sqlite:///{DATABASE_FILE}'
 
-# ЕСЛИ ДЕПЛОЙИТ НА СЕРВЕР, ЗАМЕНИТЬ ЭТОТ URL НА ПУБЛИЧНЫЙ АДРЕС ВАШЕГО СЕРВЕРА!
+# ЕСЛИ ДЕПЛОЙИТ НА СЕРВЕР, ЗАМЕНИТЬ ЭТОТ URL НА ПУБЛИЧНЫЙ АДРЕС СЕРВЕРА!
 FLASK_APP_BASE_URL = 'https://980aa8da38c1.ngrok-free.app' 
-ADMIN_USER_ID = 1043419485; # ЗАМЕНИТЬ НА СВОЙ ID ПОЛЬЗОВАТЕЛЯ, КОТОРЫЙ БУДЕТ ИМЕТЬ ПРАВА АДМИНИСТРАТОРА
+ADMIN_USER_ID = [1043419485 
+                 #,123456789, 
+                 #987654321
+                 ] # ЗАМЕНИТЬ НА ID ПОЛЬЗОВАТЕЛЕЙ, КОТОРЫЕ БУДЕТ ИМЕТЬ ПРАВА АДМИНИСТРАТОРА
+
+OFFICES = [
+    "Барвиха" , "Денежный", "Ордынка", "Пресненский", "Цифровой", "Казанская", "Басков переулок", "Владивосток", "Казань", "Нижний Новгород", "Краснодар", "Красноярск", "Екатеринбург", "Новосибирск", "Самара", "Ростов-на-Дону", "Тюмень", "Челябинск"
+]
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
 
-# --- Настройка SQLAlchemy (База данных) ---
+# --- Настройка SQLAlchemy ---
 Base = declarative_base()
 
 class Coin(Base):
@@ -69,7 +76,7 @@ def sync_excel_to_db(update: Update = None, context: ContextTypes.DEFAULT_TYPE =
     session = Session();
     if update:
         user_id = update.effective_user.id
-        if user_id != ADMIN_USER_ID:
+        if user_id not in ADMIN_USER_ID:
             logging.warning(f"Попытка несанкционированного вызова sync_excel_to_db. User ID: {user_id}")
             asyncio.run(update.message.reply_text("Отказано в доступе. Обновление может выполнять только администратор."))
             return  
@@ -285,14 +292,12 @@ def reserve_coin(coin_number):
 def handle_order():
     session = Session()
     try:
-        # 1. Логируем полученные данные
         data = request.json
         logging.info(f"Получен запрос на заказ. Raw JSON Data: {data}")
 
         customer_info = data.get('customer_info')
         cart_items = data.get('cart_items')
 
-        # 2. Проверяем наличие customer_info и cart_items
         if not customer_info or not cart_items:
             logging.warning(f"Отсутствуют данные о клиенте или товарах в корзине. customer_info: {customer_info}, cart_items: {cart_items}")
             return jsonify({'success': False, 'message': 'Отсутствуют данные о клиенте или товарах в корзине.'}), 400
@@ -303,7 +308,6 @@ def handle_order():
         results = []
         all_items_available = True
 
-        # Проверяем наличие и обновляем количество
         for item in cart_items:
             coin_number = item.get('number')
             requested_quantity = item.get('quantity')
@@ -312,15 +316,15 @@ def handle_order():
 
             if coin_number is None or requested_quantity is None:
                 logging.warning(f"Пропущена позиция из корзины: отсутствует 'number' или 'quantity'. Item: {item}")
-                continue # Пропускаем некорректные элементы
+                continue
 
             try:
-                requested_quantity = int(requested_quantity) # Убедимся, что это целое число
+                requested_quantity = int(requested_quantity)
             except (ValueError, TypeError):
                 logging.error(f"Некорректное значение quantity для монеты {coin_number}: {requested_quantity}")
                 all_items_available = False
                 results.append({'coin_number': coin_number, 'status': 'invalid_quantity', 'requested_quantity': item.get('quantity')})
-                continue # Переходим к следующему элементу, если количество некорректно
+                continue
 
             coin = session.query(Coin).filter_by(number=coin_number).first()
 
@@ -347,13 +351,9 @@ def handle_order():
             session.commit()
             logging.info("Все монеты успешно забронированы. Сохраняю заказ в Excel.")
 
-            # Сохранение заказа в Excel
             order_details = []
             order_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             for item in cart_items:
-                # ВАЖНО: Получаем coin снова, чтобы убедиться, что у нас актуальные данные (например, имя)
-                # после потенциального отката сессии в случае ошибки.
-                # Если же all_items_available True, то можно использовать coin из цикла выше, но так надежнее.
                 coin = session.query(Coin).filter_by(number=item.get('number')).first() 
                 order_details.append([
                     order_time,
@@ -369,16 +369,16 @@ def handle_order():
             logging.info("Заказ успешно оформлен и сохранен.")
             return jsonify({'success': True, 'message': 'Заказ успешно оформлен!', 'details': results})
         else:
-            session.rollback() # Откатываем все изменения, если хоть одна позиция недоступна
+            session.rollback()
             logging.warning("Оформление заказа отменено из-за нехватки монет или других проблем. Все изменения в БД отменены.")
             return jsonify({'success': False, 'message': 'Не удалось оформить весь заказ. Проверьте детали.', 'details': results})
             
     except Exception as e:
-        session.rollback() # Откатываем в случае любой непредвиденной ошибки
-        logging.exception(f"Произошла ошибка при оформлении заказа:") # Используем exception для вывода полного стека
+        session.rollback()
+        logging.exception(f"Произошла ошибка при оформлении заказа:")
         return jsonify({'success': False, 'message': f'Произошла ошибка при оформлении заказа: {str(e)}', 'details': []})
     finally:
-        session.close() # Закрываем сессию в любом случае
+        session.close()
 
 @app.route('/api/checkout', methods=['POST'])
 def checkout():
@@ -386,7 +386,7 @@ def checkout():
     items_to_reserve = data.get('items', [])
     user_first_name = data.get('user_first_name', 'Не указано')
     user_last_name = data.get('user_last_name', 'Не указано')
-    user_office = data.get('user_office', 'Не указано') # <-- Добавили эту строку!
+    user_office = data.get('user_office', 'Не указано')
 
     session = Session()
 
@@ -416,6 +416,7 @@ def checkout():
         if success_all:
             order_records_for_excel = []
             current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            order_items_text = []
 
             for item in items_to_reserve:
                 coin_number = item.get('number')
@@ -429,17 +430,39 @@ def checkout():
                         current_time,
                         user_first_name,
                         user_last_name,
-                        user_office, # <-- Добавили это поле
+                        user_office,
                         coin.name,
                         coin.number,
                         quantity
                     ])
+                    order_items_text.append(f"• Название: {coin.name}\n  Номер: {coin.number}\n  Количество: {quantity}\n")
+
             session.commit()
             logging.info(f"Заказ от '{user_first_name} {user_last_name}' успешно зарезервирован в БД.")
 
             save_order_to_excel(order_records_for_excel)
-            
+
+            message_items_str = "\n".join(order_items_text)
+            message = f"Новый заказ!\n\nИмя: {user_first_name}\nФамилия: {user_last_name}\nОфис: {user_office}\n\nТовары в заказе:\n{message_items_str}"
+
+            if telegram_application_instance and telegram_bot_loop and telegram_bot_loop.is_running():
+                for admin_id in ADMIN_USER_ID:
+                    try:
+                        # Корректный способ отправить сообщение через asyncio
+                        future = asyncio.run_coroutine_threadsafe(
+                            telegram_application_instance.bot.send_message(chat_id=admin_id, text=message),
+                            telegram_bot_loop
+                        )
+                        future.result(timeout=10)
+                        logging.info(f"Уведомление успешно отправлено админу {admin_id}.")
+                    except Exception as e:
+                        logging.error(f"Не удалось отправить уведомление админу {admin_id}: {e}")
+            else:
+                logging.error("Не удалось отправить уведомление: Telegram бот не запущен или цикл событий недоступен.")
+
             return jsonify({'success': True, 'message': 'Заказ успешно оформлен!', 'details': results})
+
+              
         else:
             session.rollback()
             logging.warning("Оформление заказа отменено из-за нехватки монет.")
@@ -458,6 +481,8 @@ def checkout():
 telegram_application_instance: Application = None
 telegram_bot_loop: asyncio.AbstractEventLoop = None
 
+telegram_application_instance = None
+telegram_bot_loop = None
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Обрабатывает команду /start."""
@@ -476,10 +501,12 @@ async def update_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     user_id = update.effective_user.id
     logging.info(f"Получена команда /update_excel_data от пользователя с ID: {user_id}")
     
-    if user_id == ADMIN_USER_ID:
+    if user_id in ADMIN_USER_ID:
         message_text = "Начинаю обновление базы данных из Excel файла..."
         await update.message.reply_text(message_text)
         threading.Thread(target=sync_excel_to_db, args=(update, context)).start()
+        message_text = "Каталог обновлен!"
+        await update.message.reply_text(message_text)
     else:
         logging.warning(f"Попытка обновить данные не-администратором. User ID: {user_id}")
         await update.message.reply_text("У вас нет прав для выполнения этой команды.")
@@ -500,7 +527,7 @@ def run_telegram_bot_in_thread():
 
     logging.info("Запуск Telegram бота (polling) в отдельном потоке...")
     try:
-        # ДОБАВЛЕНО: Инициализация бота перед запуском polling
+        # Инициализация бота перед запуском polling
         telegram_bot_loop.run_until_complete(telegram_application_instance.initialize())
         logging.info("Telegram бот инициализирован.")
 
@@ -513,7 +540,6 @@ def run_telegram_bot_in_thread():
         logging.error(f"Фатальная ошибка в потоке Telegram бота: {e}", exc_info=True)
     finally:
         logging.info("Telegram бот остановлен.")
-        # Также нужно убедиться, что Application корректно завершается
         if telegram_application_instance.running: # Проверяем, запущен ли бот
             telegram_bot_loop.call_soon_threadsafe(telegram_application_instance.shutdown)
         if telegram_bot_loop and not telegram_bot_loop.is_closed():
@@ -560,10 +586,8 @@ if __name__ == '__main__':
     if platform.system() == "Windows":
         asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
     
-    # --- Вызываем новую функцию здесь ---
     clear_orders_excel()
     logging.info("Файл заказов orders.xlsx подготовлен к новой сессии.")
-    # ------------------------------------
 
     init_db()
     sync_excel_to_db()

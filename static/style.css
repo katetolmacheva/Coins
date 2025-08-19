@@ -368,10 +368,9 @@ h1 {
     color: var(--tg-theme-text-color);
     font-family: Arial, sans-serif;
     width: 100%;
-    box-sizing: border-box; /* Убедитесь, что padding и border включены в общую ширину */
+    box-sizing: border-box;
 }
 
-/* Дополнительные стили, чтобы поля хорошо выглядели вместе */
 #checkout-form input {
     margin-bottom: 10px;
 }

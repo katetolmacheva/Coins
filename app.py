@@ -26,7 +26,8 @@ DATABASE_FILE = 'database.db'
 DATABASE_URL = f'sqlite:///{DATABASE_FILE}'
 
 # ЕСЛИ ДЕПЛОЙИТ НА СЕРВЕР, ЗАМЕНИТЬ ЭТОТ URL НА ПУБЛИЧНЫЙ АДРЕС ВАШЕГО СЕРВЕРА!
-FLASK_APP_BASE_URL = 'https://86249cc799e3.ngrok-free.app' 
+FLASK_APP_BASE_URL = 'https://980aa8da38c1.ngrok-free.app' 
+ADMIN_USER_ID = 1043419485; # ЗАМЕНИТЬ НА СВОЙ ID ПОЛЬЗОВАТЕЛЯ, КОТОРЫЙ БУДЕТ ИМЕТЬ ПРАВА АДМИНИСТРАТОРА
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
 
@@ -64,14 +65,22 @@ REQUIRED_EXCEL_COLUMNS = [
     'Имя файла'
 ]
 
-def sync_excel_to_db():
+def sync_excel_to_db(update: Update = None, context: ContextTypes.DEFAULT_TYPE = None) -> None:
+    session = Session();
+    if update:
+        user_id = update.effective_user.id
+        if user_id != ADMIN_USER_ID:
+            logging.warning(f"Попытка несанкционированного вызова sync_excel_to_db. User ID: {user_id}")
+            asyncio.run(update.message.reply_text("Отказано в доступе. Обновление может выполнять только администратор."))
+            return  
+
     logging.info("Начинаю синхронизацию данных из Excel...")
-    session = Session()
     try:
         if not os.path.exists(EXCEL_FILE):
-            logging.error(f"Ошибка: Файл Excel '{EXCEL_FILE}' не найден.")
-            return False 
-
+            logging.error(f"Файл '{EXCEL_FILE}' не найден.")
+            if update:
+                asyncio.run(update.message.reply_text(f"Ошибка: файл '{EXCEL_FILE}' не найден. Обратитесь к администратору."))
+            return
         workbook = openpyxl.load_workbook(EXCEL_FILE)
         sheet = workbook.active
         header = [cell.value for cell in sheet[1]]
@@ -375,12 +384,12 @@ def handle_order():
 def checkout():
     data = request.get_json()
     items_to_reserve = data.get('items', [])
-    user_first_name = data.get('user_first_name', 'Не указано') 
+    user_first_name = data.get('user_first_name', 'Не указано')
     user_last_name = data.get('user_last_name', 'Не указано')
-    user_office = data.get('user_office', 'Не указано')
-    
+    user_office = data.get('user_office', 'Не указано') # <-- Добавили эту строку!
+
     session = Session()
-    
+
     results = []
     success_all = True
     
@@ -414,13 +423,13 @@ def checkout():
                 coin = session.query(Coin).filter_by(number=str(coin_number)).first()
                 if coin:
                     coin.available_quantity -= quantity
-                    session.add(coin) 
-                    
+                    session.add(coin)
+
                     order_records_for_excel.append([
                         current_time,
                         user_first_name,
                         user_last_name,
-                        user_office,
+                        user_office, # <-- Добавили это поле
                         coin.name,
                         coin.number,
                         quantity
@@ -463,20 +472,17 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     )
 
 async def update_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """
-    Обрабатывает команду /update.
-    Обновляет данные монет из Excel-файла.
-    Доступна всем, не отображается в подсказках.
-    """
-    logging.info(f"Получена команда /update от пользователя {update.effective_user.id}")
-    await update.message.reply_text("Начинаю обновление данных из Excel. Пожалуйста, подождите...")
-
-    success = sync_excel_to_db()
-
-    if success:
-        await update.message.reply_text("Данные о монетах успешно обновлены! Вы можете проверить каталог.")
+    """Обработчик команды /update_excel_data. Обновляет данные из Excel файла."""
+    user_id = update.effective_user.id
+    logging.info(f"Получена команда /update_excel_data от пользователя с ID: {user_id}")
+    
+    if user_id == ADMIN_USER_ID:
+        message_text = "Начинаю обновление базы данных из Excel файла..."
+        await update.message.reply_text(message_text)
+        threading.Thread(target=sync_excel_to_db, args=(update, context)).start()
     else:
-        await update.message.reply_text("Произошла ошибка при обновлении данных. Проверьте логи сервера.")
+        logging.warning(f"Попытка обновить данные не-администратором. User ID: {user_id}")
+        await update.message.reply_text("У вас нет прав для выполнения этой команды.")
 
 def run_flask_app():
     app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False)

@@ -1,24 +1,57 @@
 ﻿<!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Ваша Корзина</title>
-  <link rel="stylesheet" href="static/style.css">
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ваша Корзина</title>
+    <link rel="stylesheet" href="static/style.css">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
-  <div class="container">
-    <button id="back-to-catalog-button" class="back-button">← Назад к каталогу</button>
-    <h1 id="cart-header" style="margin-top: 20px; text-align: center;">Ваша Корзина</h1>
+    <div class="container">
+        <button id="back-to-catalog-button" class="back-button">← Назад к каталогу</button>
+        <h1 id="cart-header" style="margin-top: 20px; text-align: center;">Ваша Корзина</h1>
 
-    <div id="cart-container" class="cart-grid">
-      <p id="empty-cart-message" style="display: none; text-align: center; color: var(--tg-theme-hint-color);">Корзина пуста.</p>
+        <div id="cart-container" class="cart-grid">
+            <p id="empty-cart-message" style="display: none; text-align: center; color: var(--tg-theme-hint-color);">Корзина пуста.</p>
+        </div>
+
+        <div id="checkout-form" style="display: none; margin-top: 20px; padding: 15px; border-top: 1px solid var(--tg-theme-hint-color);">
+            <h2>Ваши данные для бронирования</h2>
+            <input type="text" id="checkout-name" placeholder="Ваше имя" required>
+            <input type="text" id="checkout-phone" placeholder="Номер телефона" required>
+
+            <div class="select-group" style="margin-top: 10px;">
+                <label for="checkout-office" class="control-label" style="display: block; margin-bottom: 5px;">Выберите офис:</label>
+                <select id="checkout-office" class="control-select" required>
+                    <option value="">-- Выберите офис --</option>
+                    <option value="Барвиха">Барвиха</option>
+                    <option value="Денежный">Денежный</option>
+                    <option value="Ордынка">Ордынка</option>
+                    <option value="Пресненский">Пресненский</option>
+                    <option value="Цифровой">Цифровой</option>
+                    <option value="Казанская">Казанская</option>
+                    <option value="Басков переулок">Басков переулок</option>
+                    <option value="Владивосток">Владивосток</option>
+                    <option value="Казань">Казань</option>
+                    <option value="Нижний Новгород">Нижний Новгород</option>
+                    <option value="Краснодар">Краснодар</option>
+                    <option value="Красноярск">Красноярск</option>
+                    <option value="Екатеринбург">Екатеринбург</option>
+                    <option value="Новосибирск">Новосибирск</option>
+                    <option value="Самара">Самара</option>
+                    <option value="Ростов-на-Дону">Ростов-на-Дону</option>
+                    <option value="Тюмень">Тюмень</option>
+                    <option value="Челябинск">Челябинск</option>
+                </select>
+            </div>
+
+            <button id="submit-checkout-button" class="checkout-button" style="margin-top: 10px;">Подтвердить заказ</button>
+        </div>
+
+        <button id="checkout-button" class="checkout-button" style="display: none; margin-top: 20px;">Забронировать все монеты</button>
     </div>
 
-    <button id="checkout-button" class="checkout-button" style="display: none; margin-top: 20px;">Забронировать все монеты</button>
-  </div>
-
-  <script src="static/script.js"></script>
+    <script src="static/script.js"></script>
 </body>
 </html>

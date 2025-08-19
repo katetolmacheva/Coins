@@ -19,18 +19,18 @@ logging.getLogger("urllib3").setLevel(logging.WARNING)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # --- Конфигурация ---
-TOKEN = "7790860611:AAEJ7y8BJlSRkNhva6Uaxdg04vjIpCU-sbE" # ЗАМЕНИ НА СВОЙ ТОКЕН БОТА ИЗ BOTFATHER!
+TOKEN = "7790860611:AAEJ7y8BJlSRkNhva6Uaxdg04vjIpCU-sbE" # ЗАМЕНИТЬ НА СВОЙ ТОКЕН БОТА ИЗ BOTFATHER!
 EXCEL_FILE = 'coins.xlsx'
 ORDERS_EXCEL_FILE = 'orders.xlsx'
 DATABASE_FILE = 'database.db'
 DATABASE_URL = f'sqlite:///{DATABASE_FILE}'
 
-# ЕСЛИ ДЕПЛОЙИТ НА СЕРВЕР, ЗАМЕНИТЬ ЭТОТ URL НА ПУБЛИЧНЫЙ АДРЕС ВАШЕГО СЕРВЕРА!
+# ЕСЛИ ДЕПЛОЙИТ НА СЕРВЕР, ЗАМЕНИТЬ ЭТОТ URL НА ПУБЛИЧНЫЙ АДРЕС СЕРВЕРА!
 FLASK_APP_BASE_URL = 'https://980aa8da38c1.ngrok-free.app' 
 ADMIN_USER_ID = [1043419485 
                  #,123456789, 
                  #987654321
-                 ] # ЗАМЕНИТЬ НА СВОЙ ID ПОЛЬЗОВАТЕЛЯ, КОТОРЫЙ БУДЕТ ИМЕТЬ ПРАВА АДМИНИСТРАТОРА
+                 ] # ЗАМЕНИТЬ НА ID ПОЛЬЗОВАТЕЛЕЙ, КОТОРЫЕ БУДЕТ ИМЕТЬ ПРАВА АДМИНИСТРАТОРА
 
 OFFICES = [
     "Барвиха" , "Денежный", "Ордынка", "Пресненский", "Цифровой", "Казанская", "Басков переулок", "Владивосток", "Казань", "Нижний Новгород", "Краснодар", "Красноярск", "Екатеринбург", "Новосибирск", "Самара", "Ростов-на-Дону", "Тюмень", "Челябинск"
@@ -38,7 +38,7 @@ OFFICES = [
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
 
-# --- Настройка SQLAlchemy (База данных) ---
+# --- Настройка SQLAlchemy ---
 Base = declarative_base()
 
 class Coin(Base):
@@ -453,7 +453,6 @@ def checkout():
                             telegram_application_instance.bot.send_message(chat_id=admin_id, text=message),
                             telegram_bot_loop
                         )
-                        # Ожидаем, пока корутина выполнится
                         future.result(timeout=10)
                         logging.info(f"Уведомление успешно отправлено админу {admin_id}.")
                     except Exception as e:
@@ -528,7 +527,7 @@ def run_telegram_bot_in_thread():
 
     logging.info("Запуск Telegram бота (polling) в отдельном потоке...")
     try:
-        # ДОБАВЛЕНО: Инициализация бота перед запуском polling
+        # Инициализация бота перед запуском polling
         telegram_bot_loop.run_until_complete(telegram_application_instance.initialize())
         logging.info("Telegram бот инициализирован.")
 
@@ -541,7 +540,6 @@ def run_telegram_bot_in_thread():
         logging.error(f"Фатальная ошибка в потоке Telegram бота: {e}", exc_info=True)
     finally:
         logging.info("Telegram бот остановлен.")
-        # Также нужно убедиться, что Application корректно завершается
         if telegram_application_instance.running: # Проверяем, запущен ли бот
             telegram_bot_loop.call_soon_threadsafe(telegram_application_instance.shutdown)
         if telegram_bot_loop and not telegram_bot_loop.is_closed():
@@ -588,10 +586,8 @@ if __name__ == '__main__':
     if platform.system() == "Windows":
         asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
     
-    # --- Вызываем новую функцию здесь ---
     clear_orders_excel()
     logging.info("Файл заказов orders.xlsx подготовлен к новой сессии.")
-    # ------------------------------------
 
     init_db()
     sync_excel_to_db()

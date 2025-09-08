@@ -19,16 +19,15 @@ logging.getLogger("urllib3").setLevel(logging.WARNING)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # --- Конфигурация ---
-TOKEN = "7790860611:AAEJ7y8BJlSRkNhva6Uaxdg04vjIpCU-sbE" # ЗАМЕНИТЬ НА СВОЙ ТОКЕН БОТА ИЗ BOTFATHER!
+TOKEN = "TOKEN" # ЗАМЕНИТЬ НА СВОЙ ТОКЕН БОТА ИЗ BOTFATHER!
 EXCEL_FILE = 'coins.xlsx'
 ORDERS_EXCEL_FILE = 'orders.xlsx'
 DATABASE_FILE = 'database.db'
 DATABASE_URL = f'sqlite:///{DATABASE_FILE}'
 
 # ЕСЛИ ДЕПЛОЙИТ НА СЕРВЕР, ЗАМЕНИТЬ ЭТОТ URL НА ПУБЛИЧНЫЙ АДРЕС СЕРВЕРА!
-FLASK_APP_BASE_URL = 'https://980aa8da38c1.ngrok-free.app' 
-ADMIN_USER_ID = [1043419485 
-                 #,123456789, 
+FLASK_APP_BASE_URL = 'https://example.ngrok-free.app' 
+ADMIN_USER_ID = [123456789, 
                  #987654321
                  ] # ЗАМЕНИТЬ НА ID ПОЛЬЗОВАТЕЛЕЙ, КОТОРЫЕ БУДЕТ ИМЕТЬ ПРАВА АДМИНИСТРАТОРА
 
